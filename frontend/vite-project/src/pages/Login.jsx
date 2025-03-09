@@ -38,7 +38,7 @@ function Login() {
     onSuccess: async (response) => {
       try {
         const res = await fetch('http://localhost:3030/auth/google', {
-          method: 'POST', // Change GET to POST for better security
+          method: 'GET', // Change GET to POST for better security
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ code: response.code }) // Send auth code to backend

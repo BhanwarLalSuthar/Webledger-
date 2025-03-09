@@ -12,7 +12,7 @@ const API_KEYS = [
 ].filter(Boolean);
 
 
-const fetchRecipe = async (url) => {
+const fetchFromSpoonacular = async (url) => {
   for (const apiKey of API_KEYS){
     try {
       const separator = url.includes("?") ? "&" : "?";
