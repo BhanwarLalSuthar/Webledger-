@@ -1,15 +1,59 @@
 const express = require('express');
-// const passport = require("passport");
-// const session = require("express-session");
+const passport = require("./src/config/passport");
+const session = require("express-session");
 const cors = require('cors');
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const morgan = require("morgan");
+const MongoDBStore = require("connect-mongodb-session")(session);
 const {connectDB} = require('./src/config/db');
-const recipeRoutes = require('./src/routes/recipeRoutes');
+const recipeRoutes = require('./src/routes/RecipeRoutes');
 const authRoutes = require('./src/routes/AuthRoutes');
 const dotenv = require('dotenv'); 
 require('./src/config/passport'); // Import Passport configuration
 
 dotenv.config();
+
+// Validate environment variables
+const requiredEnvVars = [
+  "MONGO_URL",
+  "JWT_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
+// Setup MongoDB session store
+const store = new MongoDBStore({
+  uri: process.env.MONGO_URI,
+  collection: "sessions",
+});
 const app = express();
+
+app.set("trust proxy", 1);
+
+// Rate limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { error: "Too many auth attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const recipeLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 200,
+  message: { error: "Too many recipe requests, please slow down" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(express.json());
 
 const allowedOrigins = [
@@ -19,36 +63,46 @@ const allowedOrigins = [
     "https://your-live-frontend.com" // Your deployed frontend
   ];
   
-  app.use(
-    cors({
-      origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log("Blocked by CORS: ", origin);
-            callback(new Error("Not allowed by CORS"));
-        }
-      },
-      credentials: true, // Allow cookies and authentication headers
-      methods: "GET,POST,PUT,DELETE",
-      allowedHeaders: "Content-Type,Authorization",
-    })
-  );
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("Blocked by CORS: ", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow cookies and authentication headers
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
+  
+app.use(helmet());
+app.use(morgan("dev"));
+  // Session Middleware (Required for Passport)
+app.use(
+  session({
+    secret: process.env.JWT_SECRET, 
+    resave: false,
+    saveUninitialized: true,
+    store: store,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24,  //1d
+    }
+  })
+);
 
-// Session Middleware (Required for Passport)
-// app.use(
-//     session({
-//       secret: "masai", 
-//       resave: false,
-//       saveUninitialized: true,
-//     })
-//   );
 
-// app.use(passport.initialize());
-// app.use(passport.session());  
+app.use(passport.initialize());
+app.use(passport.session());  
+
 // Routes
-app.use('/auth', authRoutes);
-app.use('/recipes', recipeRoutes);
+app.use('/auth', authLimiter,authRoutes);
+app.use('/recipes',recipeLimiter, recipeRoutes);
 
 app.listen(3030, ()=>{
     try {
@@ -58,3 +112,6 @@ app.listen(3030, ()=>{
         console.log(error);
     }
 });
+
+process.on("SIGINT", () => server.close(() => process.exit(0)));
+process.on("SIGTERM", () => server.close(() => process.exit(0)));

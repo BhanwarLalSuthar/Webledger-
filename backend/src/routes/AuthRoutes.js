@@ -1,8 +1,8 @@
 const express = require('express')
 const router = express.Router()
-
+const jwt = require("jsonwebtoken");
 const passport = require("passport");
-const { register, login} = require('../controllers/authController')
+const { register, login, getProfile} = require('../controllers/authController')
 
 
 
@@ -15,35 +15,30 @@ router.get(
   );
   
   // Google OAuth Callback Route
-  router.get(
-    "/google/callback",
-    passport.authenticate("google", { failureRedirect: "/login", session: false }),
-    (req, res) => {
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login", session: false }),
+  (req, res) => {
+    try {
+      
       if (!req.user) {
-        return res.status(401).json({ error: "Authentication failed" });
+      console.error("No user found after Google authentication");
+        return res.status(500).json({ error: "Authentication failed" });
       }
-  
-      // Extract user & token from Passport.js
-      const { accessToken, ...user } = req.user;
-      // const isProduction = process.env.NODE_ENV === "production";
-      //   res.cookie("jwtToken", accessToken, {
-      //       httpOnly: true,    // Prevents JavaScript access
-      //       secure: isProduction,      // Only send over HTTPS
-      //       sameSite: isProduction ? "strict" : "lax", // Prevent CSRF
-      //       maxAge: 24 * 60 * 60 * 1000 // 1 day
-      //   });
-  
-      res.json({ message: "Google Login Successful", user, accessToken });
+      const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
+      });
+
+      console.log("Google callback successful, redirecting with token:", token);
+      res.redirect(`http://localhost:5173/oauth/callback?token=${token}`);
+    } catch (error) {
+      console.error("Error in Google callback:", err);
+      res.status(500).json({ error: "Something went wrong!" });
     }
-  );
+  }
+);
   
-  // Logout Route
-  router.get("/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) return res.status(500).json({ message: "Logout failed" });
-      res.json({ message: "User logged out" });
-    });
-  });
+router.get("/profile", getProfile);
 
 
 module.exports= router

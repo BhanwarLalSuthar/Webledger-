@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+
 
 const About = () => {
-  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  // const [selectedRecipe, setSelectedRecipe] = useState(null);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">

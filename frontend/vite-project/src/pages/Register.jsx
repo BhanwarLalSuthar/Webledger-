@@ -27,12 +27,12 @@ function Register() {
 
   const googleRegister = useGoogleLogin({
     onSuccess: async (response) => {
+   
       console.log("Google Token Response:", response)
       try {
         const res = await fetch('http://localhost:3030/auth/google', {
-          method: 'POST',
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: response.access_token })
+          method: 'GET',
+          credentials: "include"
         });
 
         const data = await res.json();

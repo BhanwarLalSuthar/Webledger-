@@ -33,12 +33,16 @@ function Login() {
   };
 
   const googleLogin = useGoogleLogin({
+    
+    
     onSuccess: async (response) => {
       try {
         const res = await fetch('http://localhost:3030/auth/google', {
-          method: 'POST',
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: response.access_token })
+          method: 'POST', // Change GET to POST for better security
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ code: response.code }) // Send auth code to backend
+
         });
 
         const data = await res.json();
@@ -47,7 +51,7 @@ function Login() {
           localStorage.setItem("accessToken", data.token);
           localStorage.setItem("user", JSON.stringify(data.user)); // Store user info
           window.dispatchEvent(new Event("storage")); // Notify navbar to update
-          navigate("/products");
+          navigate("/");
         } else {
           alert("Google Login Failed!");
       }
@@ -56,7 +60,8 @@ function Login() {
       }
     },
     onError: () => alert("Google Login Failed"),
-    flow: "auth-code"
+    flow: "auth-code",
+    ux_mode: "popup"
   });
 
   return (
