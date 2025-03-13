@@ -24,7 +24,7 @@ function Login() {
   };
 
   const googleLogin = () => {
-    window.location.href = "http://localhost:3030/auth/google";
+    window.location.href = "https://recipe-explorer-p9cp.onrender.com/auth/google";
   };
 
   return (

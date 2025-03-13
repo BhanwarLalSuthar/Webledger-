@@ -5,7 +5,7 @@ export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await axios.post("http://localhost:3030/auth/login", {
+      const response = await axios.post("https://recipe-explorer-p9cp.onrender.com/auth/login", {
         email,
         password,
       });

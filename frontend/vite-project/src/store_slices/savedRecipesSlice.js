@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const BASE_URL = "http://localhost:3030/recipes";
+const BASE_URL = "https://recipe-explorer-p9cp.onrender.com/recipes";
 
 // Fetch saved recipes
 export const fetchSavedRecipes = createAsyncThunk(

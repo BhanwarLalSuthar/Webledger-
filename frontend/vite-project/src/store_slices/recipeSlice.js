@@ -6,7 +6,7 @@ export const fetchRecipes = createAsyncThunk(
   async (_, { rejectWithValue, getState }) => {
     const { auth } = getState();
     try {
-      const response = await axios.get("http://localhost:3030/recipes/", {
+      const response = await axios.get("https://recipe-explorer-p9cp.onrender.com/recipes/", {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       return response.data;
@@ -21,7 +21,7 @@ export const fetchRecipeById = createAsyncThunk(
   async (id, { rejectWithValue, getState }) => {
     const { auth } = getState();
     try {
-      const response = await axios.get(`http://localhost:3030/recipes/${id}`, {
+      const response = await axios.get(`https://recipe-explorer-p9cp.onrender.com/recipes/${id}`, {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       return response.data;
@@ -36,7 +36,7 @@ export const searchRecipe = createAsyncThunk(
   async (query, { rejectWithValue, getState }) => {
     const { auth } = getState();
     try {
-      const url = new URL("http://localhost:3030/recipes/search");
+      const url = new URL("https://recipe-explorer-p9cp.onrender.com/recipes/search");
       url.searchParams.append("query", query);
       const response = await axios.get(url.toString(), {
         headers: { Authorization: `Bearer ${auth.token}` },
@@ -54,7 +54,7 @@ export const filterRecipe = createAsyncThunk(
     const { auth } = getState();
     try {
       const query = new URLSearchParams(filterParams).toString();
-      const response = await axios.get(`http://localhost:3030/recipes/search?${query}`, {
+      const response = await axios.get(`https://recipe-explorer-p9cp.onrender.com/recipes/search?${query}`, {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       return response.data;
