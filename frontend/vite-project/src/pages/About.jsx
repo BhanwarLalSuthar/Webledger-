@@ -1,5 +1,3 @@
-
-
 const About = () => {
   // const [selectedRecipe, setSelectedRecipe] = useState(null);
 

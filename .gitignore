@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+
+# ${type ? `&type=${type}` : ""}${
+#       cuisine ? `&cuisine=${cuisine}` : ""
+#     }`

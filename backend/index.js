@@ -27,20 +27,17 @@ const recipeLimiter = rateLimit({
 
 app.use(express.json());
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3030"
-];
+const allowedOrigins = ["http://localhost:5173"];
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
-app.use(helmet());
+app.use(helmet()); // Default strict settings, no COOP relaxation needed
 app.use(morgan("dev"));
 app.use(passport.initialize());
 

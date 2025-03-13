@@ -20,7 +20,9 @@ passport.use(
 
         let user = await User.findOne({ googleId: profile.id });
         if (!user) {
-          const existingUser = await User.findOne({ email: profile.emails[0].value });
+          const existingUser = await User.findOne({
+            email: profile.emails[0].value,
+          });
           if (existingUser) {
             existingUser.googleId = profile.id;
             await existingUser.save();
@@ -38,16 +40,19 @@ passport.use(
         const token = jwt.sign(
           { id: user._id, email: user.email },
           process.env.JWT_SECRET,
-          { expiresIn: "1h" }
+          { expiresIn: "1h" },
         );
 
-        return done(null, user, { token });
+        return done(null, { user, token });
       } catch (error) {
         console.error("Google OAuth error:", error);
         return done(error, null);
       }
-    }
-  )
+    },
+  ),
 );
+
+passport.serializeUser((data, done) => done(null, data));
+passport.deserializeUser((data, done) => done(null, data));
 
 module.exports = passport;

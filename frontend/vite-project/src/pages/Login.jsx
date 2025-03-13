@@ -1,83 +1,72 @@
-import { useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
-import { useState } from 'react';
-import './Login.css';
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { login } from "../store_slices/authSlice";
+import "./Login.css";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const handleLogin = () => {
-    const payload = { email, password: pass };
-
-    fetch('http://localhost:3030/auth/login', {
-      method: 'POST',
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload)
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.token){
-
-          alert(data.message);
-          localStorage.setItem("accessToken", data.token);
-          localStorage.setItem("user", JSON.stringify(data.user)); // Store user info
-          window.dispatchEvent(new Event("storage")); // Notify other components
-          navigate("/");
-        }else {
-          alert('Login failed');
-        }
-      })
-      .catch((error) => console.log(error));
+  const handleLogin = async () => {
+    try {
+      const result = await dispatch(login({ email, password: pass })).unwrap();
+      alert(result.message || "Login successful");
+      navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert(error.message || "Login failed");
+    }
   };
 
-  const googleLogin = useGoogleLogin({
-    
-    
-    onSuccess: async (response) => {
-      try {
-        const res = await fetch('http://localhost:3030/auth/google', {
-          method: 'GET', // Change GET to POST for better security
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ code: response.code }) // Send auth code to backend
-
-        });
-
-        const data = await res.json();
-        if (data.token) {
-          alert(data.message);
-          localStorage.setItem("accessToken", data.token);
-          localStorage.setItem("user", JSON.stringify(data.user)); // Store user info
-          window.dispatchEvent(new Event("storage")); // Notify navbar to update
-          navigate("/");
-        } else {
-          alert("Google Login Failed!");
-      }
-     } catch (error) {
-        console.error("Google Login Error:", error);
-      }
-    },
-    onError: () => alert("Google Login Failed"),
-    flow: "auth-code",
-    ux_mode: "popup"
-  });
+  const googleLogin = () => {
+    window.location.href = "http://localhost:3030/auth/google";
+  };
 
   return (
     <div className="login-container">
       <h2 className="login-heading">Login</h2>
       <form className="login-form">
-        <input type="email" placeholder="Email" className="login-input" required onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" className="login-input" required onChange={(e) => setPass(e.target.value)} />
-        <button type="button" className="login-button" onClick={handleLogin}>Login</button>
-        <button type="button" className="google-login-button" onClick={() => googleLogin()}>
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google Logo" className="google-logo" />
+        <input
+          type="email"
+          placeholder="Email"
+          className="login-input"
+          required
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="login-input"
+          required
+          onChange={(e) => setPass(e.target.value)}
+        />
+        <button type="button" className="login-button" onClick={handleLogin}>
+          Login
+        </button>
+        <button
+          type="button"
+          className="google-login-button"
+          onClick={googleLogin}
+        >
+          <img
+            src="https://www.svgrepo.com/show/475656/google-color.svg"
+            alt="Google Logo"
+            className="google-logo"
+          />
           Continue with Google
         </button>
-
         <p className="login-footer-text">
-          Don't have an account? <button type="button" className="signup-link" onClick={() => navigate('/register')}>Signup</button>
+          Don't have an account?{" "}
+          <button
+            type="button"
+            className="signup-link"
+            onClick={() => navigate("/register")}
+          >
+            Signup
+          </button>
         </p>
       </form>
     </div>

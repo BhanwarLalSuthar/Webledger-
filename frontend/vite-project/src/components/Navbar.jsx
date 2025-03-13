@@ -1,12 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import { useDispatch, useSelector,  } from "react-redux";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const { isAuthenticated = false } = useSelector((state) => state.auth || {})
   // Listen for login/logout changes
   useEffect(() => {
     const syncUser = () => setUser(JSON.parse(localStorage.getItem("user")));
@@ -21,6 +24,15 @@ const Navbar = () => {
     window.dispatchEvent(new Event("storage")); // Notify other components
     navigate("/login");
   };
+  const handleGoToSaved = () => {
+    if (!isAuthenticated) {
+      alert('Please login to view saved recipes.');
+      navigate('/login');
+      return;
+    }
+    navigate('/saved');
+  };
+
 
   return (
     <nav className="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white shadow-lg w-full fixed top-0 left-0 z-50">
