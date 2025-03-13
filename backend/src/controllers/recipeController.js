@@ -8,7 +8,7 @@ exports.getAllRecipes = async (req, res) => {
       process.env.SPOONACULAR_API_KEY
     }&number=${limit}`;
     const response = await axios.get(url);
-    console.log(response.data)
+    // console.log(response.data)
     res.json({ recipes: response.data });
   } catch (error) {
     console.error(

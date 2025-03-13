@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useLocation } from "react-router-dom";
-import { fetchRecipeById } from "../features/recipesSlice";
+import { fetchRecipeById } from "../store_slices/recipeSlice";
 
 const RecipeDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const location = useLocation();
   const { recipeDetail, detailStatus, detailError } = useSelector(
-    (state) => state.recipes
+    (state) => state.recipes,
   );
   const [servings, setServings] = useState(null);
   const [checkedIngredients, setCheckedIngredients] = useState({});
@@ -21,7 +21,7 @@ const RecipeDetail = () => {
     if (recipeDetail) {
       setServings(recipeDetail.servings);
       const initialChecked = {};
-      recipeDetail.extendedIngredients.forEach((ingredient) => {
+      (recipeDetail.extendedIngredients || []).forEach((ingredient) => {
         initialChecked[ingredient.id] = false;
       });
       setCheckedIngredients(initialChecked);
@@ -88,12 +88,10 @@ const RecipeDetail = () => {
   if (detailStatus === "failed") {
     return (
       <div className="text-center mt-10 px-4">
-        <p className="text-red-500 text-base sm:text-lg">
-          ⚠️ {detailError}
-        </p>
+        <p className="text-pink-500 text-base sm:text-lg">⚠️ {detailError}</p>
         <button
           onClick={() => dispatch(fetchRecipeById(id))}
-          className="mt-4 bg-red-400 text-white px-4 py-2 rounded uppercase"
+          className="mt-4 bg-red-500 text-white px-4 py-2 rounded uppercase hover:bg-red-600 transition"
         >
           Retry
         </button>
@@ -101,41 +99,43 @@ const RecipeDetail = () => {
     );
   }
 
-  if (!recipeDetail) return null;
+  if (!recipeDetail)
+    return (
+      <div className="text-center mt-10 text-purple-600">
+        No recipe data available
+      </div>
+    );
 
-  const proteinMatch = recipeDetail.summary.match(/(\d+)g of protein/);
-  const fatMatch = recipeDetail.summary.match(/(\d+)g of fat/);
-  const caloriesMatch = recipeDetail.summary.match(/(\d+) calories/);
+  const proteinMatch = recipeDetail.summary?.match(/(\d+)g of protein/) || [];
+  const fatMatch = recipeDetail.summary?.match(/(\d+)g of fat/) || [];
+  const caloriesMatch = recipeDetail.summary?.match(/(\d+) calories/) || [];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 max-w-3xl mx-auto bg-gradient-to-r from-purple-100 to-pink-100 min-h-screen">
       {/* Title */}
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-purple-700 mb-2">
         {recipeDetail.title}
       </h1>
 
       {/* Author, Date, Share & Print */}
-      <div className="flex items-center gap-4 mb-4 flex-wrap justify-center sm:justify-start">
+      <div className="flex items-center gap-4 mb-4 flex-wrap justify-center sm:justify-start text-purple-800">
         <div className="flex items-center">
           <img
             src="https://via.placeholder.com/40"
             alt="Author"
-            className="w-10 h-10 rounded-full"
+            className="w-10 h-10 rounded-full border-2 border-pink-500"
           />
-          <p className="ml-2 text-gray-600 text-sm">
+          <p className="ml-2 text-sm">
             {recipeDetail.creditsText || "Unknown Author"}
           </p>
         </div>
-        <p className="text-gray-600 text-sm">
-          {new Date().toLocaleDateString()}
-        </p>
+        <p className="text-sm">{new Date().toLocaleDateString()}</p>
         <div className="flex gap-2">
           <button
             onClick={handleShare}
             title="Share Recipe"
-            className="text-gray-600 hover:text-red-400"
+            className="text-purple-600 hover:text-pink-500 transition"
           >
-            {/* Using emoji as icon replacement */}
             <span role="img" aria-label="share">
               🔗
             </span>
@@ -143,7 +143,7 @@ const RecipeDetail = () => {
           <button
             onClick={handlePrint}
             title="Print Recipe"
-            className="text-gray-600 hover:text-red-400"
+            className="text-purple-600 hover:text-pink-500 transition"
           >
             <span role="img" aria-label="print">
               🖨️
@@ -153,7 +153,7 @@ const RecipeDetail = () => {
       </div>
 
       {/* Recipe Image */}
-      <div className="rounded shadow-lg overflow-hidden">
+      <div className="rounded-lg shadow-lg overflow-hidden border-4 border-purple-300">
         <img
           src={recipeDetail.image}
           alt={recipeDetail.title}
@@ -166,22 +166,18 @@ const RecipeDetail = () => {
       </div>
 
       {/* Info Row */}
-      <div className="flex items-center gap-4 mt-4 flex-wrap">
+      <div className="flex items-center gap-4 mt-4 flex-wrap text-purple-700">
         <div className="flex items-center gap-1">
-          <span className="text-gray-600">⏱️</span>
-          <p className="text-gray-600 text-sm">
-            {recipeDetail.readyInMinutes} MINUTES
-          </p>
+          <span>⏱️</span>
+          <p className="text-sm">{recipeDetail.readyInMinutes} MINUTES</p>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-gray-600">👥</span>
-          <p className="text-gray-600 text-sm">
-            {servings} SERVINGS
-          </p>
+          <span>👥</span>
+          <p className="text-sm">{servings} SERVINGS</p>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-gray-600">🍽️</span>
-          <p className="text-gray-600 text-sm">
+          <span>🍽️</span>
+          <p className="text-sm">
             {recipeDetail.vegetarian ? "VEGETARIAN" : "NON-VEGETARIAN"}
           </p>
         </div>
@@ -189,22 +185,24 @@ const RecipeDetail = () => {
 
       {/* Summary */}
       <div
-        className="mt-4 text-gray-600 leading-relaxed text-sm sm:text-base"
-        dangerouslySetInnerHTML={{ __html: recipeDetail.summary }}
+        className="mt-4 text-purple-800 leading-relaxed text-sm sm:text-base"
+        dangerouslySetInnerHTML={{
+          __html: recipeDetail.summary || "No summary available",
+        }}
       />
 
       {/* Rating */}
       <div className="flex items-center mt-4">
-        <p className="mr-2 text-gray-600 text-sm">
+        <p className="mr-2 text-purple-700 text-sm">
           Rating ({recipeDetail.aggregateLikes || 0})
         </p>
         {[...Array(5)].map((_, index) => (
           <span
             key={index}
             className={`${
-              index < Math.round(recipeDetail.spoonacularScore / 20)
-                ? "text-red-400"
-                : "text-gray-300"
+              index < Math.round((recipeDetail.spoonacularScore || 0) / 20)
+                ? "text-pink-500"
+                : "text-purple-300"
             } text-lg`}
           >
             ★
@@ -212,41 +210,41 @@ const RecipeDetail = () => {
         ))}
       </div>
 
-      <hr className="my-6" />
+      <hr className="my-6 border-purple-300" />
 
       {/* Ingredients */}
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+      <h2 className="text-xl sm:text-2xl font-bold text-purple-700 mb-4">
         Ingredients:
       </h2>
-      <div className="flex items-center mb-4 flex-wrap gap-4">
-        <p className="text-sm text-gray-600">Adjust Servings</p>
-        <div className="border border-gray-300 rounded px-2 py-1 w-16 text-center">
+      <div className="flex items-center mb-4 flex-wrap gap-4 text-purple-800">
+        <p className="text-sm">Adjust Servings</p>
+        <div className="border border-pink-400 rounded px-2 py-1 w-16 text-center bg-white">
           {servings}
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {recipeDetail.extendedIngredients.map((ingredient) => (
+        {(recipeDetail.extendedIngredients || []).map((ingredient) => (
           <div
             key={ingredient.id}
             className={`flex items-center p-2 border rounded transition-colors ${
               checkedIngredients[ingredient.id]
-                ? "bg-gray-100"
-                : "bg-white hover:bg-gray-50"
-            }`}
+                ? "bg-pink-100"
+                : "bg-white hover:bg-purple-50"
+            } border-purple-300`}
           >
             <input
               type="checkbox"
               checked={checkedIngredients[ingredient.id] || false}
               onChange={() => handleIngredientToggle(ingredient.id)}
-              className="mr-2 text-red-400"
+              className="mr-2 text-pink-500"
             />
             <p
-              className={`flex-grow text-gray-800 text-sm ${
+              className={`flex-grow text-purple-800 text-sm ${
                 checkedIngredients[ingredient.id] ? "line-through" : ""
               }`}
             >
-              {ingredient.measures.us.amount &&
-              ingredient.measures.us.unitShort
+              {ingredient.measures?.us?.amount &&
+              ingredient.measures?.us?.unitShort
                 ? `${ingredient.measures.us.amount} ${ingredient.measures.us.unitShort} ${ingredient.nameClean}`
                 : ingredient.original}
             </p>
@@ -254,27 +252,25 @@ const RecipeDetail = () => {
         ))}
       </div>
 
-      <hr className="my-6" />
+      <hr className="my-6 border-purple-300" />
 
       {/* Nutritional Information */}
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+      <h2 className="text-xl sm:text-2xl font-bold text-purple-700 mb-4">
         Nutritional Information
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 text-purple-800">
         <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            {fatMatch ? fatMatch[1] + "g" : "N/A"}
-          </p>
+          <p className="text-sm">{fatMatch[1] ? `${fatMatch[1]}g` : "N/A"}</p>
           <p className="font-bold">Fat</p>
         </div>
         <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            {proteinMatch ? proteinMatch[1] + "g" : "N/A"}
+          <p className="text-sm">
+            {proteinMatch[1] ? `${proteinMatch[1]}g` : "N/A"}
           </p>
           <p className="font-bold">Protein</p>
         </div>
         <div className="text-center">
-          <p className="text-gray-600 text-sm">
+          <p className="text-sm">
             {recipeDetail.pricePerServing
               ? `$${recipeDetail.pricePerServing.toFixed(2)}`
               : "N/A"}
@@ -282,77 +278,77 @@ const RecipeDetail = () => {
           <p className="font-bold">Price/Serving</p>
         </div>
         <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            {caloriesMatch ? caloriesMatch[1] : "N/A"}
-          </p>
+          <p className="text-sm">{caloriesMatch[1] || "N/A"}</p>
           <p className="font-bold">Calories</p>
         </div>
         <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            {recipeDetail.healthScore || "N/A"}
-          </p>
+          <p className="text-sm">{recipeDetail.healthScore || "N/A"}</p>
           <p className="font-bold">Health Score</p>
         </div>
       </div>
 
-      <hr className="my-6" />
+      <hr className="my-6 border-purple-300" />
 
       {/* Directions */}
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
+      <h2 className="text-xl sm:text-2xl font-bold text-purple-700 mb-4">
         Directions
       </h2>
-      {recipeDetail.analyzedInstructions[0]?.steps.map((step, index) => (
-        <div key={index} className="mb-6">
-          <div className="flex items-start gap-4">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-400 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-              {step.number}
-            </div>
-            <p className="text-gray-800 text-sm sm:text-base">
-              {step.step}
-            </p>
-          </div>
-          {step.equipment && step.equipment.length > 0 && (
-            <div className="mt-2">
-              <p className="text-gray-600 text-sm mb-1">Equipment Needed:</p>
-              <div className="flex gap-4 flex-wrap">
-                {step.equipment.map((equip, equipIndex) => (
-                  <div
-                    key={equipIndex}
-                    className="text-center max-w-[100px]"
-                  >
-                    <img
-                      src={equip.image}
-                      alt={equip.name}
-                      onError={(e) => {
-                        e.target.src =
-                          "https://via.placeholder.com/100x100?text=Image+Not+Found";
-                      }}
-                      className="w-full h-auto object-cover rounded"
-                    />
-                    <p className="text-gray-600 text-xs mt-1 block">
-                      {equip.name}
-                    </p>
-                  </div>
-                ))}
+      {(recipeDetail.analyzedInstructions?.[0]?.steps || []).map(
+        (step, index) => (
+          <div key={index} className="mb-6">
+            <div className="flex items-start gap-4">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-pink-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                {step.number}
               </div>
+              <p className="text-purple-800 text-sm sm:text-base">
+                {step.step}
+              </p>
             </div>
-          )}
-        </div>
-      ))}
+            {step.equipment?.length > 0 && (
+              <div className="mt-2">
+                <p className="text-purple-700 text-sm mb-1">
+                  Equipment Needed:
+                </p>
+                <div className="flex gap-4 flex-wrap">
+                  {step.equipment.map((equip, equipIndex) => (
+                    <div key={equipIndex} className="text-center max-w-[100px]">
+                      <img
+                        src={
+                          equip.image ||
+                          "https://via.placeholder.com/100x100?text=Image+Not+Found"
+                        }
+                        alt={equip.name}
+                        className="w-full h-auto object-cover rounded border-2 border-purple-300"
+                        onError={(e) => {
+                          e.target.src =
+                            "https://via.placeholder.com/100x100?text=Image+Not+Found";
+                        }}
+                      />
+                      <p className="text-purple-800 text-xs mt-1 block">
+                        {equip.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ),
+      )}
 
-      <hr className="my-6" />
+      <hr className="my-6 border-purple-300" />
 
       {/* Dietary Information */}
       <div>
-        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">
+        <h3 className="text-lg sm:text-xl font-bold text-purple-700 mb-1">
           Dietary Information
         </h3>
-        <p className="text-gray-600 text-xs sm:text-sm">
-          {recipeDetail.diets.length > 0
+        <p className="text-purple-800 text-xs sm:text-sm">
+          {recipeDetail.diets?.length > 0
             ? recipeDetail.diets.join(", ")
             : "No specific diet information available"}
         </p>
-        <p className="text-gray-600 text-xs sm:text-sm mt-1">
+        <p className="text-purple-800 text-xs sm:text-sm mt-1">
           Vegetarian: {recipeDetail.vegetarian ? "Yes" : "No"}
           <br />
           Vegan: {recipeDetail.vegan ? "Yes" : "No"}
@@ -367,7 +363,7 @@ const RecipeDetail = () => {
       <div className="flex gap-4 mt-6 justify-center sm:justify-start">
         <button
           onClick={handlePrint}
-          className="bg-red-400 text-white px-4 py-2 rounded uppercase"
+          className="bg-red-500 text-white px-4 py-2 rounded uppercase hover:bg-red-600 transition"
         >
           Print
         </button>

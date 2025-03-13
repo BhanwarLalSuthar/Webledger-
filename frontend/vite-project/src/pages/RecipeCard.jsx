@@ -1,33 +1,58 @@
 import React, { useState, useEffect } from "react";
 import { Heart, Users, Clock } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { saveRecipe, removeSavedRecipe } from "../store_slices/savedRecipesSlice";
-// import {
-  
-// } from "../"
+import {
+  saveRecipe,
+  removeSavedRecipe,
+} from "../store_slices/savedRecipesSlice";
+import { useNavigate } from "react-router-dom";
+
 const RecipeCard = ({ recipe, onClick }) => {
   const dispatch = useDispatch();
-  const { items: savedRecipes, loading } = useSelector((state) => state.savedRecipes);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.auth || {});
+  const { items: savedRecipes, loading } = useSelector(
+    (state) => state.savedRecipes,
+  );
   const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
-    setIsLiked(savedRecipes.some((r) => r.id === recipe.id));
+    const isSaved = savedRecipes.some((r) => r.recipeId === recipe.id);
+    setIsLiked(isSaved);
+    console.log("Recipe", recipe.id, "is saved:", isSaved); // Debug initial state
   }, [savedRecipes, recipe.id]);
 
   const handleLike = async (e) => {
     e.stopPropagation();
+    if (!isAuthenticated) {
+      alert("Please login to bookmark recipes.");
+      navigate("/login");
+      return;
+    }
+
     try {
+      console.log("Handling like for recipe:", recipe);
       if (isLiked) {
-        const savedRecipe = savedRecipes.find((r) => r.id === recipe.id);
+        const savedRecipe = savedRecipes.find((r) => r.recipeId === recipe.id);
         if (savedRecipe && savedRecipe._id) {
+          console.log("Removing saved recipe with _id:", savedRecipe._id);
           await dispatch(removeSavedRecipe(savedRecipe._id)).unwrap();
+          setIsLiked(false);
         }
       } else {
-        await dispatch(saveRecipe(recipe)).unwrap();
+        console.log("Saving recipe with id:", recipe.id);
+        const result = await dispatch(saveRecipe(recipe)).unwrap();
+        setIsLiked(true);
+        console.log("Saved successfully:", result);
       }
-      setIsLiked(!isLiked);
     } catch (error) {
       console.error("Error handling like:", error);
+      if (error === "This recipe is already saved!") {
+        setIsLiked(true); // Ensure heart stays red
+        console.log("Recipe was already saved, keeping it liked");
+      } else {
+        alert("Failed to update saved status: " + (error || "Unknown error"));
+      }
     }
   };
 
@@ -38,7 +63,7 @@ const RecipeCard = ({ recipe, onClick }) => {
   return (
     <div
       className="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:scale-105 hover:shadow-xl relative cursor-pointer"
-      onClick={() => onClick(recipe)}
+      onClick={onClick}
     >
       <div className="relative">
         <img

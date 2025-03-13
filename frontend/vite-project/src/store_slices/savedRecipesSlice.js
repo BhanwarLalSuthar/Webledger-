@@ -8,20 +8,17 @@ export const fetchSavedRecipes = createAsyncThunk(
   "savedRecipes/fetchSavedRecipes",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("No authentication token found");
 
-      const response = await axios.get(
-        `${BASE_URL}/saved`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const response = await axios.get(`${BASE_URL}/saved`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       return response.data;
-    }catch(error){
-      return rejectWithValue(error.response?.data?.error || error.message)
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || error.message);
     }
-  }
+  },
 );
 
 // Save favorite recipe
@@ -29,35 +26,57 @@ export const saveRecipe = createAsyncThunk(
   "savedRecipes/saveRecipe",
   async (recipe, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("No authentication token found");
-      const response = await axios.post(`${BASE_URL}/save`, recipe);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
-  }
-);
 
+      if (!recipe.id || isNaN(recipe.id)) {
+        throw new Error("Invalid recipe ID");
+      }
+
+      const payload = { recipeId: Number(recipe.id) };
+      console.log("Saving recipe with payload:", payload);
+      console.log("Token:", token);
+
+      const response = await axios.post(`${BASE_URL}/save`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      console.log("Save response:", response.data);
+
+      return { ...recipe, _id: response.data._id };
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message;
+      console.error("Save error details:", {
+        status: error.response?.status,
+        message: errorMsg,
+        data: error.response?.data,
+      });
+      if (errorMsg === "Recipe already saved") {
+        return rejectWithValue("This recipe is already saved!");
+      }
+      return rejectWithValue(errorMsg);
+    }
+  },
+);
 // Remove saved recipe
 export const removeSavedRecipe = createAsyncThunk(
   "savedRecipes/removeSavedRecipe",
-  async (id, { rejectWithValue }) => {
+  async (recipeId, { rejectWithValue }) => {
+    // Changed `id` to `recipeId`
     try {
-
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("No authentication token found");
 
-      await axios.delete(`${BASE_URL}/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}`}
-      }
-    );
-      return id;
+      await axios.delete(`${BASE_URL}/saved/${recipeId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return recipeId;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
-  }
+  },
 );
 
 // Reorder saved recipes
@@ -65,59 +84,58 @@ export const reorderSavedRecipes = createAsyncThunk(
   "savedRecipes/reorderSavedRecipes",
   async (reorderedList, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`${BASE_URL}/saved/order`, { recipes: reorderedList });
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No authentication token found");
+      const response = await axios.put(
+        `${BASE_URL}/saved/order`,
+        { orderedRecipes: reorderedList }, // Match backend key
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
-  }
+  },
 );
-
 
 const savedRecipesSlice = createSlice({
   name: "savedRecipes",
   initialState: {
-    savedRecipes: [],
+    items: [],
     loading: false,
-    items:[],
     error: null,
   },
   reducers: {
-    // Optional: Local reorder before API call
     reorderRecipes: (state, action) => {
       state.items = action.payload;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Saved Recipes
       .addCase(fetchSavedRecipes.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchSavedRecipes.fulfilled, (state, action) => {
         state.loading = false;
-        state.savedRecipes = action.payload ;
+        state.items = action.payload;
       })
       .addCase(fetchSavedRecipes.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      
-      // Save Recipe
       .addCase(saveRecipe.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(saveRecipe.fulfilled, (state, action) => {
         state.loading = false;
-        state.savedRecipes.push(action.payload);
+        state.items.push(action.payload);
       })
       .addCase(saveRecipe.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Remove Recipe
       .addCase(removeSavedRecipe.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -130,7 +148,6 @@ const savedRecipesSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Reorder Recipes
       .addCase(reorderSavedRecipes.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -142,8 +159,7 @@ const savedRecipesSlice = createSlice({
       .addCase(reorderSavedRecipes.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      })
-      
+      });
   },
 });
 

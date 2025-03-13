@@ -1,50 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
-import {
-  Clock,
-  Search,
-  Users,
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Clock, Search, Users } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
+import { saveRecipe } from "../store_slices/savedRecipesSlice";
 import {
-  saveRecipe,
-  
-
- } from "../store_slices/savedRecipesSlice";
- import {
   fetchRecipes,
   filterRecipe,
   searchRecipe,
-
- } from "../store_slices/recipeSlice"
+} from "../store_slices/recipeSlice";
 import RecipeCard from "./RecipeCard";
 
 const Home = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isAuthenticated = false } = useSelector((state) => state.auth || {});
-  // Local state for the dynamic search query
-  const [searchQuery, setSearchQuery] = useState('');
+  const { data, searchResults, filteredResults, loading, error } = useSelector(
+    (state) => state.recipes,
+  );
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedCuisine, setSelectedCuisine] = useState("All");
-  const [selectedlimit, setSelectedLimit] = useState(10);
-  
-  const {
-    randomRecipe,
-    searchResults,
-    filteredResults,
-    savedRecipes,
-    loading,
-    error
-  } = useSelector((state) => state.recipe);
+  const [selectedLimit, setSelectedLimit] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1); // Track the current page
 
-  
-  const [recipes, setRecipes] = useState([]);
-  // const [isLoading, setIsLoading] = useState(true);
-  // const [error, setError] = useState(null);
-  
-  const [selectedRecipe, setSelectedRecipe] = useState(null);
-
+  const itemsPerPage = 9; // Show 9 items per page
   const cuisines = [
     "All",
     "Italian",
@@ -65,15 +44,21 @@ const Home = () => {
   ];
   const limits = [10, 20, 50];
 
-  useEffect(() =>{
-    dispatch(fetchRecipes())
-    // console.log(filteredResults)
-  }, [dispatch])
+  // Fetch recipes on mount
+  useEffect(() => {
+    console.log("Fetching recipes...");
+    dispatch(fetchRecipes()).then((response) => {
+      console.log("Recipes fetched:", response.payload);
+    });
+  }, [dispatch]);
 
+  // Debounced search
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      if (searchQuery.trim() !== '') {
-        dispatch(searchRecipe(searchQuery));
+      if (searchQuery.trim() !== "") {
+        dispatch(searchRecipe(searchQuery)).then((response) => {
+          console.log("Search results:", response.payload);
+        });
       }
     }, 300);
     return () => clearTimeout(delayDebounceFn);
@@ -81,59 +66,60 @@ const Home = () => {
 
   const handleFilter = () => {
     const filterParams = {};
-    if (selectedCuisine !== 'All') filterParams.cuisine = selectedCuisine;
-    if (selectedCategory !== 'All') filterParams.category = selectedCategory;
-    if (selectedlimit) filterParams.limit = selectedlimit;
+    if (selectedCuisine !== "All") filterParams.cuisine = selectedCuisine;
+    if (selectedCategory !== "All") filterParams.category = selectedCategory;
+    if (selectedLimit) filterParams.limit = selectedLimit;
 
-    dispatch(filterRecipe(filterParams));
+    dispatch(filterRecipe(filterParams)).then((response) => {
+      console.log("Filtered results:", response.payload);
+    });
   };
 
   const handleSave = (recipe) => {
     if (!isAuthenticated) {
-      alert('Please login to bookmark recipes.');
-      navigate('/login');
+      alert("Please login to bookmark recipes.");
+      navigate("/login");
       return;
     }
     dispatch(saveRecipe(recipe));
   };
 
- 
-  // useEffect(() => {
-  //   dispatch(fetchSavedRecipes());
+  // Navigate to recipe detail page
+  const handleRecipeClick = (recipe) => {
+    navigate(`/recipes/${recipe.id}`);
+  };
 
-  //   const fetchRecipes = async () => {
-  //     try {
-  //       setIsLoading(true);
-  //       let url = `http://localhost:3030/recipes?limit=${limit}`;
-  //       if (selectedCategory !== "All")
-  //         url += `&type=${selectedCategory.toLowerCase()}`;
-  //       if (selectedCuisine !== "All")
-  //         url += `&cuisine=${selectedCuisine.toLowerCase()}`;
+  // Determine which recipes to display (before pagination)
+  const recipesToDisplay =
+    Array.isArray(filteredResults) && filteredResults.length > 0
+      ? filteredResults
+      : Array.isArray(searchResults) && searchResults.length > 0
+      ? searchResults
+      : Array.isArray(data?.recipes?.recipes)
+      ? data.recipes.recipes
+      : [];
 
-  //       const response = await fetch(url);
-  //       const data = await response.json();
+  // Pagination logic
+  const totalRecipes = recipesToDisplay.length;
+  const totalPages = Math.ceil(totalRecipes / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRecipes = recipesToDisplay.slice(startIndex, endIndex);
 
-  //       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-  //       if (!data.recipes || !Array.isArray(data.recipes)) {
-  //         throw new Error("Invalid data format received");
-  //       }
-  //       setRecipes(data.recipes);
-  //     } catch (err) {
-  //       console.error("Fetching error:", err);
-  //       setError("Failed to fetch recipes. Please try again later.");
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  //   fetchRecipes();
-  // }, [dispatch, limit, selectedCategory, selectedCuisine]);
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
 
-  // const filteredRecipes = (recipes || []).filter((recipe) =>
-  //   (recipe.title || "").toLowerCase().includes(searchQuery.toLowerCase())
-  // );
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  console.log("Recipes to display:", recipesToDisplay);
+  console.log("Paginated recipes:", paginatedRecipes);
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <div className="bg-[#D7DBE0] text-black py-20 text-center">
         <h1 className="text-5xl font-bold mb-6">Culinary Adventures Await</h1>
         <p className="text-xl mb-8 max-w-2xl mx-auto">
@@ -152,7 +138,8 @@ const Home = () => {
           </button>
         </div>
       </div>
-{/* filter */}
+
+      {/* Filters */}
       <div className="container mx-auto px-4 py-6 flex flex-wrap justify-center gap-4">
         <select
           className="px-4 py-2 rounded-full border"
@@ -178,7 +165,7 @@ const Home = () => {
         </select>
         <select
           className="px-4 py-2 rounded-full border"
-          value={selectedlimit}
+          value={selectedLimit}
           onChange={(e) => setSelectedLimit(e.target.value)}
         >
           {limits.map((num) => (
@@ -187,8 +174,15 @@ const Home = () => {
             </option>
           ))}
         </select>
+        <button
+          onClick={handleFilter}
+          className="px-4 py-2 bg-blue-500 text-white rounded-full"
+        >
+          Apply Filters
+        </button>
       </div>
-      <button onClick={handleFilter}>Apply Filters</button>
+
+      {/* Recipes */}
       <div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-gray-800 text-center mb-10">
           Featured Recipes
@@ -207,54 +201,54 @@ const Home = () => {
               Try Again
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {filteredResults && filteredResults.length > 0 ? (
-             
-              filteredResults.map((recipe) => (
-                <RecipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  onClick={setSelectedRecipe}
-                />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-10 col-span-3">
-                <Search className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-                <p className="text-xl">No recipes found</p>
-              </div>
-            )}
+        ) : recipesToDisplay.length === 0 ? (
+          <div className="text-center text-gray-500 py-10">
+            <Search className="w-16 h-16 mx-auto mb-4 text-blue-500" />
+            <p className="text-xl">No recipes found</p>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {paginatedRecipes.map((recipe, index) => (
+                <RecipeCard
+                  key={recipe.id || index}
+                  recipe={recipe}
+                  onClick={() => handleRecipeClick(recipe)} // Navigate to detail page
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center mt-8 space-x-4">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-full ${
+                  currentPage === 1
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                }`}
+              >
+                Previous
+              </button>
+              <span className="text-gray-700">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-full ${
+                  currentPage === totalPages
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </>
         )}
       </div>
-
-      {selectedRecipe && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full relative">
-            <button
-              onClick={() => setSelectedRecipe(null)}
-              className="absolute top-4 right-4 text-gray-600 hover:text-black"
-            >
-              ✖
-            </button>
-            <h2 className="text-2xl font-bold mb-4">{selectedRecipe.title}</h2>
-            <img
-              src={selectedRecipe.image}
-              alt={selectedRecipe.title}
-              className="w-full h-56 object-cover mb-4"
-            />
-            <p className="text-gray-700">
-              <strong>Servings:</strong> {selectedRecipe.servings || "N/A"}
-            </p>
-            <p className="text-gray-700">
-              <strong>Price per serving:</strong> $
-              {selectedRecipe.pricePerServing
-                ? Number(selectedRecipe.pricePerServing).toFixed(2)
-                : "N/A"}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
