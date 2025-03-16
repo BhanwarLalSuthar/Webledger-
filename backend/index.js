@@ -27,7 +27,7 @@ const recipeLimiter = rateLimit({
 
 app.use(express.json());
 
-const allowedOrigins = ["http://localhost:5174","https://webledger-eight.vercel.app/"];
+const allowedOrigins = ["http://localhost:5173","https://webledger-eight.vercel.app"];
 app.use(
   cors({
     origin: allowedOrigins,
