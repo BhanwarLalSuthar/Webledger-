@@ -7,6 +7,7 @@ const morgan = require("morgan");
 const { connectDB } = require("./src/config/db");
 const recipeRoutes = require("./src/routes/RecipeRoutes");
 const authRoutes = require("./src/routes/AuthRoutes");
+const userRoutes = require("./src/routes/UserRoutes");
 require("dotenv").config();
 
 const app = express();
@@ -43,11 +44,18 @@ app.use(passport.initialize());
 
 app.use("/auth", authLimiter, authRoutes);
 app.use("/recipes", recipeLimiter, recipeRoutes);
+app.use("/users",  userRoutes);
 
-const server = app.listen(3030, () => {
-  console.log("Server is running on http://localhost:3030");
-  connectDB();
-});
+connectDB()
+  .then(() => {
+    const server = app.listen(3030, () => {
+      console.log("Server is running on http://localhost:3030");
+    });
+    process.on("SIGINT", () => server.close(() => process.exit(0)));
+    process.on("SIGTERM", () => server.close(() => process.exit(0)));
+  })
+  .catch((error) => {
+    console.error("Failed to start server due to DB connection error:", error);
+    process.exit(1);
+  });
 
-process.on("SIGINT", () => server.close(() => process.exit(0)));
-process.on("SIGTERM", () => server.close(() => process.exit(0)));

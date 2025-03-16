@@ -9,7 +9,7 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import AuthSuccess from "./pages/AuthSuccess";
-// import ProtectedRoute from "./components/ProtectedRoute"; // Optional, see below
+import RecipeDetail from "./pages/RecipeDetail"; // Import RecipeDetail
 
 const AppRoutes = () => {
   const dispatch = useDispatch();
@@ -22,15 +22,9 @@ const AppRoutes = () => {
       dispatch(setAuth({ token, user }));
     };
 
-    // Sync on initial load
     syncAuth();
-
-    // Listen for storage changes (e.g., from login/logout in another tab)
     window.addEventListener("storage", syncAuth);
-
-    return () => {
-      window.removeEventListener("storage", syncAuth);
-    };
+    return () => window.removeEventListener("storage", syncAuth);
   }, [dispatch]);
 
   return (
@@ -41,16 +35,10 @@ const AppRoutes = () => {
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* Protect SavedRecipes route */}
-        <Route
-          path="/saved"
-          element={
-            // <ProtectedRoute>
-              <SavedRecipes />
-            // </ProtectedRoute>
-          }
-        />
+        <Route path="/saved" element={<SavedRecipes />} />
         <Route path="/auth/success" element={<AuthSuccess />} />
+        <Route path="/recipes/:id" element={<RecipeDetail />} />{" "}
+        {/* Add RecipeDetail route */}
       </Routes>
     </Router>
   );

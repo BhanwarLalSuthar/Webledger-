@@ -1,22 +1,25 @@
 const express = require("express");
+const router = express.Router();
 const {
   getAllRecipes,
-  getSavedRecipes,
-  updateSavedRecipesOrder,
-  saveRecipe,
-  searchRecipe,
-  deleteSavedRecipe,
   fetchRecipeDetail,
+  searchRecipe,
+  saveRecipe,
+  getSavedRecipes,
+  deleteSavedRecipe,
+  updateRecipeOrder,
 } = require("../controllers/recipeController");
 const { authMiddleware } = require("../middleware/authMiddleware");
-const router = express.Router();
 
-router.get("/", getAllRecipes); // Fetch recipes from Spoonacular API
-router.get("/:id", fetchRecipeDetail); // Fetch specific recipe details
-router.get("/search", searchRecipe); // Fetch specific recipe details
-router.get("/saved", authMiddleware, getSavedRecipes);
-router.delete("/saved/:recipeId", authMiddleware, deleteSavedRecipe);
-router.put("/saved/order", authMiddleware, updateSavedRecipesOrder);
+// Specific routes first (to avoid being caught by /:id)
+router.get("/saved", authMiddleware, getSavedRecipes); // Moved up
 router.post("/save", authMiddleware, saveRecipe);
+router.delete("/saved/:recipeId", authMiddleware, deleteSavedRecipe);
+router.put("/order", authMiddleware, updateRecipeOrder);
+router.get("/search", searchRecipe);
+
+// More general routes last
+router.get("/", getAllRecipes);
+router.get("/:id", fetchRecipeDetail); // Must come after /saved
 
 module.exports = router;

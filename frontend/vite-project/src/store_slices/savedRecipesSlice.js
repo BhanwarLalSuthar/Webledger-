@@ -1,151 +1,137 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const BASE_URL = "http://localhost:3030/recipes";
-
-// Fetch saved recipes
 export const fetchSavedRecipes = createAsyncThunk(
   "savedRecipes/fetchSavedRecipes",
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
+    const { auth } = getState();
+    if (!auth.token) {
+      return rejectWithValue("No authentication token available");
+    }
     try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No authentication token found");
+      console.log("Fetching saved recipes with token:", auth.token);
+      const response = await axios.get("http://localhost:3030/recipes/saved", {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      console.log("Saved recipes response:", response.data);
+      return response.data;
+    } catch (err) {
+      console.error("Error fetching saved recipes:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to fetch saved recipes",
+      );
+    }
+  },
+);
 
-      const response = await axios.get(
-        `${BASE_URL}/saved`,
+export const saveRecipe = createAsyncThunk(
+  "savedRecipes/saveRecipe",
+  async (recipe, { getState, rejectWithValue }) => {
+    const { auth } = getState();
+    try {
+      console.log("Saving recipe with payload:", recipe);
+      console.log("Token:", auth.token);
+
+      const payload = {
+        recipeId: recipe.id,
+        title: recipe.title,
+        image: recipe.image,
+        vegan: recipe.vegan || false,
+        readyInMinutes: recipe.readyInMinutes,
+      };
+
+      const response = await axios.post(
+        "http://localhost:3030/recipes/save",
+        payload,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${auth.token}` },
         },
       );
       return response.data;
-    }catch(error){
-      return rejectWithValue(error.response?.data?.error || error.message)
-    }
-  }
-);
-
-// Save favorite recipe
-export const saveRecipe = createAsyncThunk(
-  "savedRecipes/saveRecipe",
-  async (recipe, { rejectWithValue }) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No authentication token found");
-      const response = await axios.post(`${BASE_URL}/save`, recipe);
-      return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+      console.log("Save error details:", {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data,
+      });
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
-  }
+  },
 );
 
-// Remove saved recipe
 export const removeSavedRecipe = createAsyncThunk(
   "savedRecipes/removeSavedRecipe",
-  async (id, { rejectWithValue }) => {
+  async (recipeId, { getState, rejectWithValue }) => {
+    const { auth } = getState();
     try {
-
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No authentication token found");
-
-      await axios.delete(`${BASE_URL}/${id}`,
+      const response = await axios.delete(
+        `http://localhost:3030/recipes/saved/${recipeId}`,
         {
-          headers: { Authorization: `Bearer ${token}`}
-      }
-    );
-      return id;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
+          headers: { Authorization: `Bearer ${auth.token}` },
+        },
+      );
+      return { _id: recipeId, message: response.data.message };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to remove saved recipe",
+      );
     }
-  }
+  },
 );
-
-// Reorder saved recipes
-export const reorderSavedRecipes = createAsyncThunk(
-  "savedRecipes/reorderSavedRecipes",
-  async (reorderedList, { rejectWithValue }) => {
-    try {
-      const response = await axios.put(`${BASE_URL}/saved/order`, { recipes: reorderedList });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
-  }
-);
-
 
 const savedRecipesSlice = createSlice({
   name: "savedRecipes",
   initialState: {
-    savedRecipes: [],
+    items: [],
     loading: false,
-    items:[],
     error: null,
   },
-  reducers: {
-    // Optional: Local reorder before API call
-    reorderRecipes: (state, action) => {
-      state.items = action.payload;
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      // Fetch Saved Recipes
       .addCase(fetchSavedRecipes.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchSavedRecipes.fulfilled, (state, action) => {
         state.loading = false;
-        state.savedRecipes = action.payload ;
+        state.items = action.payload;
       })
       .addCase(fetchSavedRecipes.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      
-      // Save Recipe
       .addCase(saveRecipe.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(saveRecipe.fulfilled, (state, action) => {
         state.loading = false;
-        state.savedRecipes.push(action.payload);
+        state.items.push(action.payload);
       })
       .addCase(saveRecipe.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Remove Recipe
       .addCase(removeSavedRecipe.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(removeSavedRecipe.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = state.items.filter((r) => r._id !== action.payload);
+        state.items = state.items.filter(
+          (recipe) => recipe._id !== action.payload._id,
+        );
       })
       .addCase(removeSavedRecipe.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      })
-      // Reorder Recipes
-      .addCase(reorderSavedRecipes.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(reorderSavedRecipes.fulfilled, (state, action) => {
-        state.loading = false;
-        state.items = action.payload;
-      })
-      .addCase(reorderSavedRecipes.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      
+      });
   },
 });
 
-export const { reorderRecipes } = savedRecipesSlice.actions;
 export default savedRecipesSlice.reducer;

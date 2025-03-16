@@ -1,33 +1,71 @@
 import React, { useState, useEffect } from "react";
 import { Heart, Users, Clock } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { saveRecipe, removeSavedRecipe } from "../store_slices/savedRecipesSlice";
-// import {
-  
-// } from "../"
+import {
+  saveRecipe,
+  removeSavedRecipe,
+} from "../store_slices/savedRecipesSlice";
+import { useNavigate } from "react-router-dom";
+
 const RecipeCard = ({ recipe, onClick }) => {
   const dispatch = useDispatch();
-  const { items: savedRecipes, loading } = useSelector((state) => state.savedRecipes);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.auth || {});
+  const { items: savedRecipes, loading } = useSelector(
+    (state) => state.savedRecipes,
+  );
   const [isLiked, setIsLiked] = useState(false);
 
+  // Use recipeId or id depending on context
+  const recipeId = recipe.recipeId || recipe.id;
+
   useEffect(() => {
-    setIsLiked(savedRecipes.some((r) => r.id === recipe.id));
-  }, [savedRecipes, recipe.id]);
+    const isSaved = savedRecipes.some(
+      (r) => r.recipeId === recipeId && !r.error,
+    );
+    setIsLiked(isSaved);
+    console.log("Recipe", recipeId, "is saved:", isSaved);
+  }, [savedRecipes, recipeId]);
 
   const handleLike = async (e) => {
     e.stopPropagation();
+    if (!isAuthenticated) {
+      alert("Please login to bookmark recipes.");
+      navigate("/login");
+      return;
+    }
+
     try {
       if (isLiked) {
-        const savedRecipe = savedRecipes.find((r) => r.id === recipe.id);
+        const savedRecipe = savedRecipes.find(
+          (r) => r.recipeId === recipeId && !r.error,
+        );
         if (savedRecipe && savedRecipe._id) {
+          console.log("Removing saved recipe with _id:", savedRecipe._id);
           await dispatch(removeSavedRecipe(savedRecipe._id)).unwrap();
+          setIsLiked(false);
         }
       } else {
-        await dispatch(saveRecipe(recipe)).unwrap();
+        console.log("Saving recipe with id:", recipeId);
+        const result = await dispatch(
+          saveRecipe({
+            id: recipeId, // Use recipeId here
+            title: recipe.title,
+            image: recipe.image,
+            vegan: recipe.vegan || false,
+            readyInMinutes: recipe.readyInMinutes,
+          }),
+        ).unwrap();
+        setIsLiked(true);
+        console.log("Saved successfully:", result);
       }
-      setIsLiked(!isLiked);
     } catch (error) {
       console.error("Error handling like:", error);
+      if (error === "Recipe already saved") {
+        setIsLiked(true);
+      } else {
+        alert("Failed to update saved status: " + (error || "Unknown error"));
+      }
     }
   };
 
@@ -35,14 +73,22 @@ const RecipeCard = ({ recipe, onClick }) => {
     ? Number(recipe.pricePerServing).toFixed(2)
     : "N/A";
 
+  if (!recipeId) {
+    console.log("RecipeCard: No valid ID provided", recipe);
+    return null; // Skip rendering if no ID is present
+  }
+
   return (
     <div
       className="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all hover:scale-105 hover:shadow-xl relative cursor-pointer"
-      onClick={() => onClick(recipe)}
+      onClick={onClick}
     >
       <div className="relative">
         <img
-          src={recipe.image}
+          src={
+            recipe.image ||
+            "https://via.placeholder.com/556x370?text=Image+Unavailable"
+          }
           alt={recipe.title}
           className="w-full h-56 object-cover"
         />
