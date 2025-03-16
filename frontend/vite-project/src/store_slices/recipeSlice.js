@@ -5,7 +5,7 @@ export const fetchRecipes = createAsyncThunk(
   "recipes/fetchRecipes",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("http://localhost:3030/recipes");
+      const response = await axios.get("https://recipe-explorer-p9cp.onrender.com/recipes");
       return response.data;
     } catch (err) {
       return rejectWithValue(
@@ -20,7 +20,7 @@ export const searchRecipe = createAsyncThunk(
   async (query, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `http://localhost:3030/recipes/search?query=${encodeURIComponent(
+        `https://recipe-explorer-p9cp.onrender.com/recipes/search?query=${encodeURIComponent(
           query,
         )}`,
       );
@@ -39,7 +39,7 @@ export const filterRecipe = createAsyncThunk(
     try {
       const queryString = new URLSearchParams(params).toString();
       const response = await axios.get(
-        `http://localhost:3030/recipes?${queryString}`,
+        `https://recipe-explorer-p9cp.onrender.com/recipes?${queryString}`,
       );
       return response.data.recipes;
     } catch (err) {
@@ -54,7 +54,7 @@ export const fetchRecipeById = createAsyncThunk(
   "recipes/fetchRecipeById",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`http://localhost:3030/recipes/${id}`);
+      const response = await axios.get(`https://recipe-explorer-p9cp.onrender.com/recipes/${id}`);
       return response.data;
     } catch (err) {
       return rejectWithValue(

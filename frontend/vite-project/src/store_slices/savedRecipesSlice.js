@@ -10,7 +10,7 @@ export const fetchSavedRecipes = createAsyncThunk(
     }
     try {
       console.log("Fetching saved recipes with token:", auth.token);
-      const response = await axios.get("http://localhost:3030/recipes/saved", {
+      const response = await axios.get("https://recipe-explorer-p9cp.onrender.com/recipes/saved", {
         headers: { Authorization: `Bearer ${auth.token}` },
       });
       console.log("Saved recipes response:", response.data);
@@ -45,7 +45,7 @@ export const saveRecipe = createAsyncThunk(
       };
 
       const response = await axios.post(
-        "http://localhost:3030/recipes/save",
+        "https://recipe-explorer-p9cp.onrender.com/recipes/save",
         payload,
         {
           headers: { Authorization: `Bearer ${auth.token}` },
@@ -69,7 +69,7 @@ export const removeSavedRecipe = createAsyncThunk(
     const { auth } = getState();
     try {
       const response = await axios.delete(
-        `http://localhost:3030/recipes/saved/${recipeId}`,
+        `https://recipe-explorer-p9cp.onrender.com/recipes/saved/${recipeId}`,
         {
           headers: { Authorization: `Bearer ${auth.token}` },
         },

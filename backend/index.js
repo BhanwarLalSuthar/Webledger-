@@ -1,5 +1,4 @@
 const express = require("express");
-const passport = require("./src/config/passport");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -28,7 +27,7 @@ const recipeLimiter = rateLimit({
 
 app.use(express.json());
 
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["http://localhost:5174","https://webledger-eight.vercel.app/"];
 app.use(
   cors({
     origin: allowedOrigins,
@@ -38,13 +37,18 @@ app.use(
   }),
 );
 
-app.use(helmet()); // Default strict settings, no COOP relaxation needed
+app.use(helmet());
 app.use(morgan("dev"));
-app.use(passport.initialize());
 
 app.use("/auth", authLimiter, authRoutes);
 app.use("/recipes", recipeLimiter, recipeRoutes);
-app.use("/users",  userRoutes);
+app.use("/users", userRoutes);
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
 
 connectDB()
   .then(() => {
@@ -58,4 +62,3 @@ connectDB()
     console.error("Failed to start server due to DB connection error:", error);
     process.exit(1);
   });
-

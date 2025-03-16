@@ -11,7 +11,7 @@ function Register() {
   const handleRegister = () => {
     const payload = { name, email, password: pass };
 
-    fetch('http://localhost:3030/auth/register', {
+    fetch('https://recipe-explorer-p9cp.onrender.com/auth/register', {
       method: 'POST',
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload)
@@ -25,7 +25,7 @@ function Register() {
   };
 
   const googleRegister = () => {
-    window.location.href = "http://localhost:3030/auth/google";
+    window.location.href = "https://recipe-explorer-p9cp.onrender.com/auth/google";
   };
 
   return (

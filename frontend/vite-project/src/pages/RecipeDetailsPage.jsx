@@ -1,6 +1,6 @@
 import React from "react";
 import Navbar from "../components/Navbar";
-import RecipeDetail from "../components/RecipeDetail";
+import RecipeDetail from "./RecipeDetail";
 
 
 const ReceipeDetail = () => {

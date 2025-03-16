@@ -8,7 +8,7 @@ const {
   getSavedRecipes,
   deleteSavedRecipe,
   updateRecipeOrder,
-} = require("../controllers/recipeController");
+} = require("../controllers/RecipeController");
 const { authMiddleware } = require("../middleware/authMiddleware");
 
 // Specific routes first (to avoid being caught by /:id)
