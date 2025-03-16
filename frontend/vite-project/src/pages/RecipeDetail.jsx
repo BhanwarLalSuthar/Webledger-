@@ -7,33 +7,33 @@ const RecipeDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const location = useLocation();
-  const { recipeDetail, detailStatus, detailError } = useSelector(
-    (state) => state.recipes,
-  );
+  const { currentRecipe, loading, error } = useSelector((state) => state.recipes);
   const [servings, setServings] = useState(null);
   const [checkedIngredients, setCheckedIngredients] = useState({});
 
   useEffect(() => {
+    console.log("Fetching recipe for ID:", id);
     dispatch(fetchRecipeById(id));
   }, [dispatch, id, location.pathname]);
 
   useEffect(() => {
-    if (recipeDetail) {
-      setServings(recipeDetail.servings);
+    if (currentRecipe) {
+      console.log("Recipe loaded:", currentRecipe);
+      setServings(currentRecipe.servings);
       const initialChecked = {};
-      (recipeDetail.extendedIngredients || []).forEach((ingredient) => {
+      (currentRecipe.extendedIngredients || []).forEach((ingredient) => {
         initialChecked[ingredient.id] = false;
       });
       setCheckedIngredients(initialChecked);
     }
-  }, [recipeDetail]);
+  }, [currentRecipe]);
 
   const handleShare = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: recipeDetail.title,
-          text: `Check out this recipe: ${recipeDetail.title}`,
+          title: currentRecipe.title,
+          text: `Check out this recipe: ${currentRecipe.title}`,
           url: window.location.href,
         });
       } else {
@@ -57,7 +57,7 @@ const RecipeDetail = () => {
     }));
   };
 
-  if (detailStatus === "loading") {
+  if (loading) {
     return (
       <div className="p-4 max-w-3xl mx-auto">
         <div className="h-12 w-3/5 bg-gray-300 rounded mb-2"></div>
@@ -85,10 +85,10 @@ const RecipeDetail = () => {
     );
   }
 
-  if (detailStatus === "failed") {
+  if (error) {
     return (
       <div className="text-center mt-10 px-4">
-        <p className="text-pink-500 text-base sm:text-lg">⚠️ {detailError}</p>
+        <p className="text-pink-500 text-base sm:text-lg">⚠️ {error}</p>
         <button
           onClick={() => dispatch(fetchRecipeById(id))}
           className="mt-4 bg-red-500 text-white px-4 py-2 rounded uppercase hover:bg-red-600 transition"
@@ -99,25 +99,24 @@ const RecipeDetail = () => {
     );
   }
 
-  if (!recipeDetail)
+  if (!currentRecipe) {
+    console.log("No currentRecipe available");
     return (
       <div className="text-center mt-10 text-purple-600">
         No recipe data available
       </div>
     );
+  }
 
-  const proteinMatch = recipeDetail.summary?.match(/(\d+)g of protein/) || [];
-  const fatMatch = recipeDetail.summary?.match(/(\d+)g of fat/) || [];
-  const caloriesMatch = recipeDetail.summary?.match(/(\d+) calories/) || [];
+  const proteinMatch = currentRecipe.summary?.match(/(\d+)g of protein/) || [];
+  const fatMatch = currentRecipe.summary?.match(/(\d+)g of fat/) || [];
+  const caloriesMatch = currentRecipe.summary?.match(/(\d+) calories/) || [];
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-3xl mx-auto bg-gradient-to-r from-purple-100 to-pink-100 min-h-screen">
-      {/* Title */}
       <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-purple-700 mb-2">
-        {recipeDetail.title}
+        {currentRecipe.title}
       </h1>
-
-      {/* Author, Date, Share & Print */}
       <div className="flex items-center gap-4 mb-4 flex-wrap justify-center sm:justify-start text-purple-800">
         <div className="flex items-center">
           <img
@@ -126,7 +125,7 @@ const RecipeDetail = () => {
             className="w-10 h-10 rounded-full border-2 border-pink-500"
           />
           <p className="ml-2 text-sm">
-            {recipeDetail.creditsText || "Unknown Author"}
+            {currentRecipe.creditsText || "Unknown Author"}
           </p>
         </div>
         <p className="text-sm">{new Date().toLocaleDateString()}</p>
@@ -151,25 +150,20 @@ const RecipeDetail = () => {
           </button>
         </div>
       </div>
-
-      {/* Recipe Image */}
       <div className="rounded-lg shadow-lg overflow-hidden border-4 border-purple-300">
         <img
-          src={recipeDetail.image}
-          alt={recipeDetail.title}
+          src={currentRecipe.image}
+          alt={currentRecipe.title}
           className="w-full h-60 sm:h-80 md:h-96 object-cover"
           onError={(e) => {
-            e.target.src =
-              "https://via.placeholder.com/400x400?text=Image+Not+Found";
+            e.target.src = "https://via.placeholder.com/400x400?text=Image+Not+Found";
           }}
         />
       </div>
-
-      {/* Info Row */}
       <div className="flex items-center gap-4 mt-4 flex-wrap text-purple-700">
         <div className="flex items-center gap-1">
           <span>⏱️</span>
-          <p className="text-sm">{recipeDetail.readyInMinutes} MINUTES</p>
+          <p className="text-sm">{currentRecipe.readyInMinutes} MINUTES</p>
         </div>
         <div className="flex items-center gap-1">
           <span>👥</span>
@@ -178,29 +172,25 @@ const RecipeDetail = () => {
         <div className="flex items-center gap-1">
           <span>🍽️</span>
           <p className="text-sm">
-            {recipeDetail.vegetarian ? "VEGETARIAN" : "NON-VEGETARIAN"}
+            {currentRecipe.vegetarian ? "VEGETARIAN" : "NON-VEGETARIAN"}
           </p>
         </div>
       </div>
-
-      {/* Summary */}
       <div
         className="mt-4 text-purple-800 leading-relaxed text-sm sm:text-base"
         dangerouslySetInnerHTML={{
-          __html: recipeDetail.summary || "No summary available",
+          __html: currentRecipe.summary || "No summary available",
         }}
       />
-
-      {/* Rating */}
       <div className="flex items-center mt-4">
         <p className="mr-2 text-purple-700 text-sm">
-          Rating ({recipeDetail.aggregateLikes || 0})
+          Rating ({currentRecipe.aggregateLikes || 0})
         </p>
         {[...Array(5)].map((_, index) => (
           <span
             key={index}
             className={`${
-              index < Math.round((recipeDetail.spoonacularScore || 0) / 20)
+              index < Math.round((currentRecipe.spoonacularScore || 0) / 20)
                 ? "text-pink-500"
                 : "text-purple-300"
             } text-lg`}
@@ -209,10 +199,7 @@ const RecipeDetail = () => {
           </span>
         ))}
       </div>
-
       <hr className="my-6 border-purple-300" />
-
-      {/* Ingredients */}
       <h2 className="text-xl sm:text-2xl font-bold text-purple-700 mb-4">
         Ingredients:
       </h2>
@@ -223,7 +210,7 @@ const RecipeDetail = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {(recipeDetail.extendedIngredients || []).map((ingredient) => (
+        {(currentRecipe.extendedIngredients || []).map((ingredient) => (
           <div
             key={ingredient.id}
             className={`flex items-center p-2 border rounded transition-colors ${
@@ -243,18 +230,14 @@ const RecipeDetail = () => {
                 checkedIngredients[ingredient.id] ? "line-through" : ""
               }`}
             >
-              {ingredient.measures?.us?.amount &&
-              ingredient.measures?.us?.unitShort
+              {ingredient.measures?.us?.amount && ingredient.measures?.us?.unitShort
                 ? `${ingredient.measures.us.amount} ${ingredient.measures.us.unitShort} ${ingredient.nameClean}`
                 : ingredient.original}
             </p>
           </div>
         ))}
       </div>
-
       <hr className="my-6 border-purple-300" />
-
-      {/* Nutritional Information */}
       <h2 className="text-xl sm:text-2xl font-bold text-purple-700 mb-4">
         Nutritional Information
       </h2>
@@ -264,15 +247,13 @@ const RecipeDetail = () => {
           <p className="font-bold">Fat</p>
         </div>
         <div className="text-center">
-          <p className="text-sm">
-            {proteinMatch[1] ? `${proteinMatch[1]}g` : "N/A"}
-          </p>
+          <p className="text-sm">{proteinMatch[1] ? `${proteinMatch[1]}g` : "N/A"}</p>
           <p className="font-bold">Protein</p>
         </div>
         <div className="text-center">
           <p className="text-sm">
-            {recipeDetail.pricePerServing
-              ? `$${recipeDetail.pricePerServing.toFixed(2)}`
+            {currentRecipe.pricePerServing
+              ? `$${currentRecipe.pricePerServing.toFixed(2)}`
               : "N/A"}
           </p>
           <p className="font-bold">Price/Serving</p>
@@ -282,84 +263,68 @@ const RecipeDetail = () => {
           <p className="font-bold">Calories</p>
         </div>
         <div className="text-center">
-          <p className="text-sm">{recipeDetail.healthScore || "N/A"}</p>
+          <p className="text-sm">{currentRecipe.healthScore || "N/A"}</p>
           <p className="font-bold">Health Score</p>
         </div>
       </div>
-
       <hr className="my-6 border-purple-300" />
-
-      {/* Directions */}
       <h2 className="text-xl sm:text-2xl font-bold text-purple-700 mb-4">
         Directions
       </h2>
-      {(recipeDetail.analyzedInstructions?.[0]?.steps || []).map(
-        (step, index) => (
-          <div key={index} className="mb-6">
-            <div className="flex items-start gap-4">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-pink-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                {step.number}
-              </div>
-              <p className="text-purple-800 text-sm sm:text-base">
-                {step.step}
-              </p>
+      {(currentRecipe.analyzedInstructions?.[0]?.steps || []).map((step, index) => (
+        <div key={index} className="mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-pink-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+              {step.number}
             </div>
-            {step.equipment?.length > 0 && (
-              <div className="mt-2">
-                <p className="text-purple-700 text-sm mb-1">
-                  Equipment Needed:
-                </p>
-                <div className="flex gap-4 flex-wrap">
-                  {step.equipment.map((equip, equipIndex) => (
-                    <div key={equipIndex} className="text-center max-w-[100px]">
-                      <img
-                        src={
-                          equip.image ||
-                          "https://via.placeholder.com/100x100?text=Image+Not+Found"
-                        }
-                        alt={equip.name}
-                        className="w-full h-auto object-cover rounded border-2 border-purple-300"
-                        onError={(e) => {
-                          e.target.src =
-                            "https://via.placeholder.com/100x100?text=Image+Not+Found";
-                        }}
-                      />
-                      <p className="text-purple-800 text-xs mt-1 block">
-                        {equip.name}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <p className="text-purple-800 text-sm sm:text-base">{step.step}</p>
           </div>
-        ),
-      )}
-
+          {step.equipment?.length > 0 && (
+            <div className="mt-2">
+              <p className="text-purple-700 text-sm mb-1">Equipment Needed:</p>
+              <div className="flex gap-4 flex-wrap">
+                {step.equipment.map((equip, equipIndex) => (
+                  <div key={equipIndex} className="text-center max-w-[100px]">
+                    <img
+                      src={
+                        equip.image ||
+                        "https://via.placeholder.com/100x100?text=Image+Not+Found"
+                      }
+                      alt={equip.name}
+                      className="w-full h-auto object-cover rounded border-2 border-purple-300"
+                      onError={(e) => {
+                        e.target.src =
+                          "https://via.placeholder.com/100x100?text=Image+Not+Found";
+                      }}
+                    />
+                    <p className="text-purple-800 text-xs mt-1 block">{equip.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
       <hr className="my-6 border-purple-300" />
-
-      {/* Dietary Information */}
       <div>
         <h3 className="text-lg sm:text-xl font-bold text-purple-700 mb-1">
           Dietary Information
         </h3>
         <p className="text-purple-800 text-xs sm:text-sm">
-          {recipeDetail.diets?.length > 0
-            ? recipeDetail.diets.join(", ")
+          {currentRecipe.diets?.length > 0
+            ? currentRecipe.diets.join(", ")
             : "No specific diet information available"}
         </p>
         <p className="text-purple-800 text-xs sm:text-sm mt-1">
-          Vegetarian: {recipeDetail.vegetarian ? "Yes" : "No"}
+          Vegetarian: {currentRecipe.vegetarian ? "Yes" : "No"}
           <br />
-          Vegan: {recipeDetail.vegan ? "Yes" : "No"}
+          Vegan: {currentRecipe.vegan ? "Yes" : "No"}
           <br />
-          Gluten Free: {recipeDetail.glutenFree ? "Yes" : "No"}
+          Gluten Free: {currentRecipe.glutenFree ? "Yes" : "No"}
           <br />
-          Dairy Free: {recipeDetail.dairyFree ? "Yes" : "No"}
+          Dairy Free: {currentRecipe.dairyFree ? "Yes" : "No"}
         </p>
       </div>
-
-      {/* Print Button */}
       <div className="flex gap-4 mt-6 justify-center sm:justify-start">
         <button
           onClick={handlePrint}

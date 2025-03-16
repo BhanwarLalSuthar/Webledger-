@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
+// Fetch all recipes
 export const fetchRecipes = createAsyncThunk(
   "recipes/fetchRecipes",
   async (_, { rejectWithValue }) => {
@@ -9,47 +10,48 @@ export const fetchRecipes = createAsyncThunk(
       return response.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.error || "Failed to fetch recipes",
+        err.response?.data?.error || "Failed to fetch recipes"
       );
     }
-  },
+  }
 );
 
+// Search recipes by query
 export const searchRecipe = createAsyncThunk(
   "recipes/searchRecipe",
   async (query, { rejectWithValue }) => {
     try {
       const response = await axios.get(
-        `https://recipe-explorer-p9cp.onrender.com/recipes/search?query=${encodeURIComponent(
-          query,
-        )}`,
+        `https://recipe-explorer-p9cp.onrender.com/recipes/search?query=${encodeURIComponent(query)}`
       );
       return response.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.error || "Failed to search recipes",
+        err.response?.data?.error || "Failed to search recipes"
       );
     }
-  },
+  }
 );
 
+// Filter recipes by parameters
 export const filterRecipe = createAsyncThunk(
   "recipes/filterRecipe",
   async (params, { rejectWithValue }) => {
     try {
       const queryString = new URLSearchParams(params).toString();
       const response = await axios.get(
-        `https://recipe-explorer-p9cp.onrender.com/recipes?${queryString}`,
+        `https://recipe-explorer-p9cp.onrender.com/recipes?${queryString}`
       );
       return response.data.recipes;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.error || "Failed to filter recipes",
+        err.response?.data?.error || "Failed to filter recipes"
       );
     }
-  },
+  }
 );
 
+// Fetch a single recipe by ID
 export const fetchRecipeById = createAsyncThunk(
   "recipes/fetchRecipeById",
   async (id, { rejectWithValue }) => {
@@ -58,25 +60,26 @@ export const fetchRecipeById = createAsyncThunk(
       return response.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.error || "Failed to fetch recipe details",
+        err.response?.data?.error || "Failed to fetch recipe details"
       );
     }
-  },
+  }
 );
 
 const recipeSlice = createSlice({
   name: "recipes",
   initialState: {
-    data: [],
-    searchResults: [],
-    filteredResults: [],
-    currentRecipe: null, // Add this to store the single recipe
-    loading: false,
-    error: null,
+    data: [], // All recipes
+    searchResults: [], // Search results
+    filteredResults: [], // Filtered results
+    currentRecipe: null, // Single recipe for detail page
+    loading: false, // Loading state
+    error: null, // Error state
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // Fetch all recipes
       .addCase(fetchRecipes.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -89,6 +92,7 @@ const recipeSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Search recipes
       .addCase(searchRecipe.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -101,6 +105,7 @@ const recipeSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Filter recipes
       .addCase(filterRecipe.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -113,6 +118,7 @@ const recipeSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Fetch recipe by ID
       .addCase(fetchRecipeById.pending, (state) => {
         state.loading = true;
         state.error = null;
